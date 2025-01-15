@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Timer and Results</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #1a1a1a;
+      color: #f0f0f0;
+      margin: 0;
+      padding: 20px;
+      background-image: url('https://example.com/heavenly-background.jpg');
+      background-size: cover;
+      background-position: center;
+    }
+
+    h1, h2, h3 {
+      color: #FFD700;
+      text-align: center;
+      text-shadow: 2px 2px 5px rgba(255, 215, 0, 0.7);
+    }
+
+    #game-info {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      font-size: 18px;
+      color: #fff;
+    }
+
+    #timer {
+      font-size: 36px;
+      font-weight: bold;
+      color: #FF4500;
+    }
+
+    #history-list {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background-color: rgba(0, 0, 0, 0.7);
+      border-radius: 10px;
+    }
+
+    #history-list th, #history-list td {
+      border: 1px solid #FFD700;
+      padding: 8px;
+      text-align: center;
+      font-size: 16px;
+      color: #FFD700;
+    }
+
+    .ball {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: inline-block;
+      margin: 5px;
+      text-align: center;
+      line-height: 40px;
+      color: white;
+      font-weight: bold;
+      font-size: 18px;
+    }
+
+    .small {
+      background-color: #6A5ACD;
+    }
+
+    .big {
+      background-color: #FF6347;
+    }
+
+    #latest-balls {
+      text-align: center;
+      margin-top: 30px;
+    }
+
+    #latest-balls .ball {
+      box-shadow: 0px 0px 15px rgba(255, 215, 0, 0.7);
+    }
+
+    .game-section {
+      background-color: rgba(0, 0, 0, 0.8);
+      padding: 20px;
+      border-radius: 15px;
+      margin-top: 40px;
+    }
+
+    #prediction {
+      font-size: 24px;
+      font-weight: bold;
+      color: #FFD700;
+      text-align: center;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>SYED_X (PRIVATE)</h1>
+  
+  <div id="game-info" class="game-section">
+    <div>
+      <strong>Period Number:</strong> <span id="period-number">Loading...</span>
+    </div>
+    <div id="timer">
+      <span id="minutes">00</span>:<span id="seconds">00</span>
+    </div>
+  </div>
+  
+  <h2>Previous Results</h2>
+  <table id="history-list">
+    <thead>
+      <tr>
+        <th>Period No.</th>
+        <th>Number</th>
+        <th>Size</th>
+        <th>Color</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- History rows will be inserted here dynamically -->
+    </tbody>
+  </table>
+
+  <div id="latest-balls">
+    <h3>Latest Results (Last 5)</h3>
+    <div>
+      <span class="ball"></span>
+      <span class="ball"></span>
+      <span class="ball"></span>
+      <span class="ball"></span>
+      <span class="ball"></span>
+    </div>
+  </div>
+
+  <div id="prediction">
+    <!-- Prediction will appear here -->
+  </div>
+
+  <script>
+    async function fetchCurrentGameIssue() {
+      const apiUrl = 'https://api.bdg88zf.com/api/webapi/GetGameIssue';
+      const requestData = {
+        "typeId": 1,
+        "language": 0,
+        "random": "40079dcba93a48769c6ee9d4d4fae23f",
+        "signature": "D12108C4F57C549D82B23A91E0FA20AE",
+        "timestamp": 1727792520 
+      };
+
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json;charset=UTF-8',
+            'Accept': 'application/json, text/plain, */*'
+          },
+          body: JSON.stringify(requestData)
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.code === 0) {
+            updateTimer(data.data);
+          } else {
+            console.error('Failed to fetch game issue:', data.msg);
+          }
+        } else {
+          console.error('Network response was not ok:', response.statusText);
+        }
+      } catch (error) {
+        console.error('Fetch error:', error);
+      }
+    }
+
+    function updateTimer(data) {
+      const periodNumber = document.getElementById('period-number');
+      periodNumber.textContent = data.issueNumber;
+
+      const endTime = new Date(data.endTime).getTime();
+      const interval = setInterval(() => {
+        const now = new Date().getTime();
+        const distance = endTime - now;
+
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        document.getElementById('minutes').textContent = minutes < 10 ? '0' + minutes : minutes;
+        document.getElementById('seconds').textContent = seconds < 10 ? '0' + seconds : seconds;
+
+        if (distance < 0) {
+          clearInterval(interval);
+          document.getElementById('minutes').textContent = "00";
+          document.getElementById('seconds').textContent = "00";
+        
+          fetchCurrentGameIssue();
+          fetchPreviousResults();   
+        }
+      }, 1000);
+    }
+
+    async function fetchPreviousResults() {
+      const apiUrl = 'https://api.bdg88zf.com/api/webapi/GetNoaverageEmerdList';
+      const requestData = {
+        "pageSize": 10,
+        "pageNo": 1,
+        "typeId": 1,
+        "language": 0,
+        "random": "c2505d9138da4e3780b2c2b34f2fb789",
+        "signature": "7D637E060DA35C0C6E28DC6D23D71BED",
+        "timestamp": 1727792520
+      };
+
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json;charset=UTF-8',
+            'Accept': 'application/json, text/plain, */*'
+          },
+          body: JSON.stringify(requestData)
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.code === 0) {
+            updatePreviousResults(data.data.list);
+          } else {
+            console.error('Failed to fetch previous results:', data.msg);
+          }
+        } else {
+          console.error('Network response was not ok:', response.statusText);
+        }
+      } catch (error) {
+        console.error('Fetch error:', error);
+      }
+    }
+
+    function updatePreviousResults(resultList) {
+      const historyTable = document.getElementById('history-list').querySelector('tbody');
+      historyTable.innerHTML = ''; 
+
+      resultList.forEach(result => {
+        const { issueNumber, number, colour } = result;
+        const size = number <= 4 ? 'SMALL' : 'BIG'; 
+
+        const row = document.createElement('tr');
+
+        const issueCell = document.createElement('td');
+        issueCell.textContent = issueNumber;
+        row.appendChild(issueCell);
+
+        const numberCell = document.createElement('td');
+        numberCell.textContent = number;
+        row.appendChild(numberCell);
+
+        const sizeCell = document.createElement('td');
+        sizeCell.textContent = size;
+        row.appendChild(sizeCell);
+
+        const colourCell = document.createElement('td');
+        colourCell.textContent = colour.toUpperCase();
+        row.appendChild(colourCell);
+
+        historyTable.appendChild(row);
+      });
+
+      if (resultList.length >= 10) {
+        const latestTenResults = resultList.slice(0, 10);
+        updateBalls(latestTenResults.slice(0, 5));
+        predictNextResult(latestTenResults);
+      }
+    }
+
+    function updateBalls(results) {
+      const balls = document.querySelectorAll('.ball');
+      
+      results.forEach((result, index) => {
+        if (balls[index]) {
+          const colour = result.colour.toLowerCase();
+          balls[index].textContent = result.number;
+          balls[index].className = 'ball';  
+          balls[index].classList.add(colour); 
+        }
+      });
+    }
+
+    function predictNextResult(results) {
+      const sizeCounts = { 'SMALL': 0, 'BIG': 0 };
+      const colourCounts = { 'blue': 0, 'orange': 0, 'purple': 0 }; 
+      const numberFrequency = {};
+
+      results.forEach(result => {
+        const size = result.number <= 4 ? 'SMALL' : 'BIG';
+        const colour = result.colour.toLowerCase();
+
+        sizeCounts[size]++;
+        colourCounts[colour]++;
+        numberFrequency[result.number] = (numberFrequency[result.number] || 0) + 1;
+      });
+
+      const predictedSize = sizeCounts.SMALL > sizeCounts.BIG ? 'SMALL' : 'BIG';
+      const predictedColour = Object.keys(colourCounts).reduce((a, b) => colourCounts[a] > colourCounts[b] ? a : b);
+      const predictedNumber = Object.keys(numberFrequency).reduce((a, b) => numberFrequency[a] > numberFrequency[b] ? a : b);
+
+      document.getElementById('prediction').innerHTML = `
+        <p>Predicted Next Result: ${predictedSize} | Color: ${predictedColour.charAt(0).toUpperCase() + predictedColour.slice(1)}</p>
+        <p>Predicted Number: ${predictedNumber}</p>
+      `;
+    }
+
+    window.onload = () => {
+      fetchCurrentGameIssue();
+      fetchPreviousResults();
+    };
+  </script>
+
+</body>
+</html>
